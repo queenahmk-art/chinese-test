@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>親子學習工作坊 - 認字與數學</title>
+    
+    <!-- 加入 KaTeX 支援數學公式渲染 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --math-color: #9C27B0;
+            --secondary-color: #7ED321;
+            --bg-color: #F8FBFE;
+            --card-bg: #FFFFFF;
+            --text-color: #333333;
+            --accent-color: #F5A623;
+            --error-color: #D0021B;
+            --soft-blue: #E3F2FD;
+            --soft-purple: #F3E5F5;
+        }
+
+        * { box-sizing: border-box; font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; min-height: 100vh; transition: background-color 0.3s; }
+        .container { max-width: 600px; margin: 0 auto; position: relative; padding-bottom: 40px; }
+
+        .main-nav { display: flex; background: #eee; border-radius: 30px; padding: 5px; margin-bottom: 15px; }
+        .nav-tab { flex: 1; padding: 12px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1.1rem; color: #777; background: transparent; transition: all 0.3s; }
+        .nav-tab.active.word-mode { background: var(--primary-color); color: white; }
+        .nav-tab.active.math-mode { background: var(--math-color); color: white; }
+
+        .stamp-counter { text-align: center; background: #FFF9C4; padding: 8px; border-radius: 50px; border: 2px dashed var(--accent-color); font-weight: bold; margin-bottom: 15px; font-size: 0.9rem; }
+
+        .mode-section { display: none; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .active-section { display: block; }
+
+        .config-group { padding: 15px; border-radius: 20px; margin-bottom: 15px; }
+        .word-config { background: var(--soft-blue); }
+        .math-config { background: var(--soft-purple); }
+        
+        .sel-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem; background: white; }
+
+        .item-row { display: grid; grid-template-columns: 30px 1fr; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .item-preview { padding: 12px; border: 1px solid #ddd; border-radius: 12px; width: 100%; font-size: 1.1rem; background: #fdfdfd; min-height: 48px; display: flex; align-items: center; }
+
+        .display-box { font-size: 80px; font-weight: bold; margin: 20px 0; border-radius: 25px; padding: 50px 10px; background: #fafafa; min-height: 200px; display: flex; align-items: center; justify-content: center; text-align: center; border: 2px solid #f0f0f0; }
+        .math-text { color: var(--math-color); }
+        .word-text { color: var(--primary-color); }
+
+        .hint-area { min-height: 120px; text-align: center; margin-bottom: 20px; }
+        .btn-hint { background: #FFF3E0; color: #E65100; border: 2px solid #FFE0B2; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .hint-content { font-size: 40px; display: none; animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); line-height: 1.4; padding: 15px; background: #FFFDE7; border-radius: 15px; border: 1px solid #FFF59D; }
+        @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+        .score-row { display: flex; justify-content: center; gap: 15px; }
+        .score-btn { width: 100px; height: 60px; border-radius: 20px; border: 2px solid #eee; background: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .score-btn.y.active { background: var(--secondary-color); color: white; border-color: var(--secondary-color); }
+        .score-btn.n.active { background: var(--error-color); color: white; border-color: var(--error-color); }
+
+        .nav-row { display: flex; gap: 10px; margin-top: 30px; }
+        .btn { padding: 15px; border: none; border-radius: 18px; cursor: pointer; font-weight: bold; font-size: 1.1rem; flex: 1; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-math { background: var(--math-color); color: white; }
+        .btn-disabled { background: #ccc !important; cursor: not-allowed; }
+
+        .reset-btn { background: none; border: none; color: #bbb; text-decoration: underline; margin-top: 30px; width: 100%; font-size: 0.8rem; cursor: pointer; }
+        .footer-info { text-align: center; color: #ccc; font-size: 0.7rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-nav">
+        <button id="nav-word" class="nav-tab active word-mode" onclick="switchPlatform('word')">📖 認字平台</button>
+        <button id="nav-math" class="nav-tab math-mode" onclick="switchPlatform('math')">🔢 數學平台</button>
+    </div>
+
+    <div id="display-stamps" class="stamp-counter">已累積學習成就：0 個印仔 🏆</div>
+
+    <!-- 認字平台設定區 -->
+    <section id="section-word-setup" class="mode-section active-section">
+        <div class="config-group word-config">
+            <div style="font-weight: bold; color: #2C5E8F; font-size: 0.9rem;">📚 認字範圍設定</div>
+            <div class="sel-row">
+                <select id="sel-word-level" onchange="updateWordThemes()">
+                    <option value="">所有範疇</option>
+                    <option value="基礎">基礎認知 (K1-K2)</option>
+                    <option value="生活">日常生活 (K2-K3)</option>
+                    <option value="銜接">升小銜接 (K3+)</option>
+                </select>
+                <select id="sel-word-theme"><option value="">所有子類別</option></select>
+                <button class="btn btn-primary" style="padding: 10px; flex: 0.6; font-size: 0.9rem;" onclick="autoFill('word')">隨機抽題</button>
+            </div>
+        </div>
+        <div id="word-input-list"></div>
+        <button class="btn btn-primary" style="width: 100%; margin-top: 20px; background-color: var(--secondary-color);" onclick="startTest('word')">開始認字測試 🚀</button>
+    </section>
+
+    <!-- 數學平台設定區 -->
+    <section id="section-math-setup" class="mode-section">
+        <div class="config-group math-config">
+            <div style="font-weight: bold; color: #6A1B9A; font-size: 0.9rem;">🧮 數學運算設定 (1-10)</div>
+            <div class="sel-row">
+                <select id="sel-math-type">
+                    <option value="">混合運算</option>
+                    <option value="加法">加法 (+)</option>
+                    <option value="減法">減法 (-)</option>
+                </select>
+                <button class="btn btn-math" style="padding: 10px; flex: 0.6; font-size: 0.9rem;" onclick="autoFill('math')">生成題目</button>
+            </div>
+        </div>
+        <div id="math-input-list"></div>
+        <button class="btn btn-math" style="width: 100%; margin-top: 20px;" onclick="startTest('math')">開始數學挑戰 🚀</button>
+    </section>
+
+    <!-- 測試介面 -->
+    <section id="section-test" class="mode-section">
+        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; color:#888;">
+            <span>題目 <span id="current-num">1</span> / 7</span>
+            <span id="level-tag" style="background:#eee; padding:2px 8px; border-radius:5px;"></span>
+        </div>
+        <div id="main-display" class="display-box">---</div>
+        <div class="hint-area">
+            <button id="hint-btn" class="btn-hint" onclick="revealHint()">💡 顯示形象化提示</button>
+            <div id="hint-content" class="hint-content"></div>
+        </div>
+        <div class="score-row">
+            <button id="btn-y" class="score-btn y" onclick="setScore(true)">✓ 答對</button>
+            <button id="btn-n" class="score-btn n" onclick="setScore(false)">✗ 未對</button>
+        </div>
+        <div class="nav-row">
+            <button class="btn" style="background:#eee;" onclick="goBack()">返回</button>
+            <button id="btn-next" class="btn" onclick="goNext()" disabled>下一題</button>
+            <button id="btn-finish" class="btn" style="display:none; background-color: var(--accent-color); color:white;" onclick="showResults()" disabled>看結果</button>
+        </div>
+    </section>
+
+    <!-- 結果介面 -->
+    <section id="section-result" class="mode-section" style="text-align:center;">
+        <h2 id="result-title">太棒了！</h2>
+        <div id="final-score" style="font-size: 4.5rem; font-weight: bold;">0 / 7</div>
+        <p id="result-text" style="font-size: 1.2rem;"></p>
+        <div id="win-badge" style="display:none; font-size: 5rem;">🏆</div>
+        <button id="btn-restart" class="btn" onclick="returnToSetup()" style="margin-top: 20px; color:white;">繼續練習</button>
+    </section>
+
+    <button class="reset-btn" onclick="confirmReset()">消除所有數據</button>
+    <div class="footer-info">v2.3 | 修復重置功能與強化水果庫</div>
+</div>
+
+<script>
+    const WORD_DB = [
+        // 基礎
+        ["基礎","身體","眼睛","👀"],["基礎","身體","耳朵","👂"],["基礎","身體","鼻子","👃"],["基礎","身體","嘴巴","👄"],["基礎","身體","手掌","✋"],["基礎","身體","雙腳","🦶"],["基礎","身體","頭髮","🧒"],["基礎","身體","牙齒","🦷"],["基礎","身體","肩膀","💪"],["基礎","身體","肚子","🤰"],
+        ["基礎","人物","我","🙋"],["基礎","人物","老師","👩‍🏫"],["基礎","人物","爸爸","👨"],["基礎","人物","媽媽","👩"],["基礎","人物","哥哥","👦"],["基礎","人物","姐姐","👧"],["基礎","人物","弟弟","👶"],["基礎","人物","妹妹","👶"],["基礎","人物","醫生","👩‍⚕️"],["基礎","人物","警察","👮"],
+        ["基礎","動物","長頸鹿","🦒"],["基礎","動物","斑馬","🦓"],["基礎","動物","大象","🐘"],["基礎","動物","小貓","🐱"],["基礎","動物","小狗","🐶"],["基礎","動物","金魚","🐟"],["基礎","動物","兔子","🐰"],["基礎","動物","猴子","🐒"],["基礎","動物","獅子","🦁"],["基礎","動物","老虎","🐯"],
+        // 生活 - 水果 (已確認 12 款，保證隨機抽題成功)
+        ["生活","水果","蘋果","🍎"],["生活","水果","香蕉","🍌"],["生活","水果","西瓜","🍉"],["生活","水果","橙","🍊"],["生活","水果","葡萄","🍇"],["生活","水果","草莓","🍓"],["生活","水果","梨子","🍐"],["生活","水果","菠蘿","🍍"],["生活","水果","桃","🍑"],["生活","水果","櫻桃","🍒"],["生活","水果","芒果","🥭"],["生活","水果","木瓜","🥭"],
+        // 生活 - 食物
+        ["生活","食物","麵包","🍞"],["生活","食物","牛奶","🥛"],["生活","食物","雞蛋","🥚"],["生活","食物","米飯","🍚"],["生活","食物","餅乾","🍪"],["生活","食物","蛋糕","🍰"],["生活","食物","麵條","🍜"],["生活","食物","糖果","🍬"],
+        // 生活 - 交通
+        ["生活","交通","汽車","🚗"],["生活","交通","巴士","🚌"],["生活","交通","飛機","✈️"],["生活","交通","的士","🚕"],["生活","交通","單車","🚲"],["生活","交通","地鐵","🚇"],["生活","交通","船","🚢"],
+        // 銜接 - 概念
+        ["銜接","概念","大","🐘"],["銜接","概念","小","🐜"],["銜接","概念","長","📏"],["銜接","概念","短","✂️"],["銜接","概念","高","🦒"],["銜接","概念","矮","🐢"],["銜接","概念","多","🍎🍎🍎"],["銜接","概念","少","🍎"],["銜接","概念","開心","😊"],["銜接","概念","難過","😢"],["銜接","概念","生氣","😡"]
+    ];
+
+    const MATH_DB = [
+        ["數學","加法","$1+1=?$","🍎 + 🍎"], ["數學","加法","$2+1=?$","🍎🍎 + 🍎"], ["數學","加法","$3+2=?$","🍊🍊🍊 + 🍊🍊"], ["數學","加法","$5+5=?$","🖐️ + 🖐️"], ["數學","加法","$4+3=?$","⭐ ⭐ ⭐ ⭐<br>+ ⭐ ⭐ ⭐"],["數學","加法","$6+2=?$","🎲 + 🎲"],["數學","加法","$1+4=?$","🍭 + 🍭🍭🍭🍭"],["數學","加法","$7+2=?$","⚽⚽⚽⚽⚽⚽⚽<br>+ ⚽⚽"],
+        ["數學","減法","$2-1=?$","🍎 (🍎) ⬅️ 走了一個"], ["數學","減法","$5-2=?$","🖐️ (❌❌) ⬅️ 收起兩根"], ["數學","減法","$10-5=?$","👐 (❌❌❌❌❌) ⬅️ 收起一隻手"], ["數學","減法","$3-3=?$","🍭🍭🍭 (❌❌❌) 全吃掉了"], ["數學","減法","$4-2=?$","🚗🚗 (🚗🚗) ⬅️ 開走了兩部"],["數學","減法","$6-1=?$","🐝🐝🐝🐝🐝 (🐝) ⬅️ 飛走了一隻"],["數學","減法","$8-4=?$","🍕🍕🍕🍕 (🍕🍕🍕🍕) ⬅️ 食咗一半"]
+    ];
+
+    let state = {
+        platform: 'word', 
+        questions: [],
+        wordQuestions: [],
+        mathQuestions: [],
+        scores: Array(7).fill(null),
+        currIdx: 0,
+        stamps: parseInt(localStorage.getItem('hk_stamps_combo_v2') || 0)
+    };
+
+    window.onload = () => {
+        switchPlatform('word');
+        updateStampDisplay();
+    };
+
+    function switchPlatform(p) {
+        state.platform = p;
+        document.getElementById('nav-word').className = 'nav-tab word-mode' + (p === 'word' ? ' active' : '');
+        document.getElementById('nav-math').className = 'nav-tab math-mode' + (p === 'math' ? ' active' : '');
+        
+        document.getElementById('section-word-setup').style.display = (p === 'word' ? 'block' : 'none');
+        document.getElementById('section-math-setup').style.display = (p === 'math' ? 'block' : 'none');
+        document.getElementById('section-test').style.display = 'none';
+        document.getElementById('section-result').style.display = 'none';
+
+        if (p === 'word') {
+            document.body.style.backgroundColor = "var(--bg-color)";
+            updateWordThemes();
+            renderList('word');
+        } else {
+            document.body.style.backgroundColor = "#FDF2FF";
+            renderList('math');
+        }
+    }
+
+    function updateWordThemes() {
+        const lv = document.getElementById('sel-word-level').value;
+        const themes = [...new Set(WORD_DB.filter(r => !lv || r[0] === lv).map(r => r[1]))];
+        const sel = document.getElementById('sel-word-theme');
+        if (sel) {
+            sel.innerHTML = '<option value="">所有子類別</option>';
+            themes.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`);
+        }
+    }
+
+    function renderList(type) {
+        const container = document.getElementById(type + '-input-list');
+        if (!container) return;
+        container.innerHTML = '';
+        const listData = (type === 'word') ? state.wordQuestions : state.mathQuestions;
+        const currentQs = (listData && listData.length === 7) ? listData : Array(7).fill({word: '<span style="color:#ccc">點擊上方隨機抽題</span>'});
+        
+        currentQs.forEach((q, i) => {
+            const div = document.createElement('div');
+            div.className = 'item-row';
+            div.innerHTML = `<span style="color:${type==='word'?'var(--primary-color)':'var(--math-color)'};font-weight:bold;text-align:center">${i+1}</span>
+                <div class="item-preview">${q.word || '點擊上方隨機抽題'}</div>`;
+            container.appendChild(div);
+        });
+        
+        if (window.renderMathInElement) {
+            renderMathInElement(container, { delimiters: [{left: '$', right: '$', display: false}] });
+        }
+    }
+
+    function autoFill(type) {
+        let pool = [];
+        if (type === 'word') {
+            const lv = document.getElementById('sel-word-level').value;
+            const th = document.getElementById('sel-word-theme').value;
+            pool = WORD_DB.map(r => ({ level: r[0], sub: r[1], word: r[2], hint: r[3] }))
+                          .filter(r => (!lv || r.level === lv) && (!th || r.sub === th));
+            
+            // 修正：如果單一子類別不夠 7 題，從該範疇的所有題目中隨機抓
+            if (pool.length < 7) {
+                pool = WORD_DB.map(r => ({ level: r[0], sub: r[1], word: r[2], hint: r[3] }))
+                              .filter(r => (!lv || r.level === lv));
+            }
+        } else {
+            const mathType = document.getElementById('sel-math-type').value;
+            pool = MATH_DB.map(r => ({ level: r[0], sub: r[1], word: r[2], hint: r[3] }))
+                          .filter(r => !mathType || r.sub === mathType);
+        }
+
+        if (pool.length < 7) {
+            alert("該範圍內題目不足 7 題，請重選範疇！");
+            return;
+        }
+
+        const shuffled = [...pool].sort(() => 0.5 - Math.random()).slice(0, 7);
+        if (type === 'word') state.wordQuestions = shuffled;
+        else state.mathQuestions = shuffled;
+        renderList(type);
+    }
+
+    function startTest(type) {
+        const currentQs = (type === 'word') ? state.wordQuestions : state.mathQuestions;
+        if (!currentQs || currentQs.length < 7) {
+            alert('請先點擊上方按鈕生成 7 題！');
+            return;
+        }
+        state.questions = currentQs;
+        state.currIdx = 0;
+        state.scores = Array(7).fill(null);
+        document.querySelectorAll('.mode-section').forEach(s => s.style.display = 'none');
+        document.getElementById('section-test').style.display = 'block';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const q = state.questions[state.currIdx];
+        const display = document.getElementById('main-display');
+        display.innerHTML = q.word;
+        display.className = 'display-box ' + (state.platform === 'word' ? 'word-text' : 'math-text');
+        document.getElementById('current-num').innerText = state.currIdx + 1;
+        document.getElementById('level-tag').innerText = q.sub || q.level;
+        document.getElementById('hint-btn').style.display = 'inline-block';
+        const hintEl = document.getElementById('hint-content');
+        hintEl.style.display = 'none';
+        hintEl.innerHTML = q.hint;
+        updateTestUI();
+        if (window.renderMathInElement) renderMathInElement(display, { delimiters: [{left: '$', right: '$', display: false}] });
+    }
+
+    function revealHint() {
+        document.getElementById('hint-btn').style.display = 'none';
+        document.getElementById('hint-content').style.display = 'block';
+    }
+
+    function setScore(val) {
+        state.scores[state.currIdx] = val;
+        updateTestUI();
+        revealHint();
+    }
+
+    function updateTestUI() {
+        const s = state.scores[state.currIdx];
+        document.getElementById('btn-y').className = 'score-btn y ' + (s === true ? 'active' : '');
+        document.getElementById('btn-n').className = 'score-btn n ' + (s === false ? 'active' : '');
+        const answered = s !== null;
+        document.getElementById('btn-next').style.display = state.currIdx === 6 ? 'none' : 'block';
+        document.getElementById('btn-next').disabled = !answered;
+        document.getElementById('btn-next').classList.toggle('btn-disabled', !answered);
+        document.getElementById('btn-finish').style.display = state.currIdx === 6 ? 'block' : 'none';
+        document.getElementById('btn-finish').disabled = !answered;
+        document.getElementById('btn-finish').classList.toggle('btn-disabled', !answered);
+    }
+
+    function goNext() { if (state.currIdx < 6) { state.currIdx++; loadQuestion(); } }
+    function goBack() { if (state.currIdx > 0) { state.currIdx--; loadQuestion(); } else { returnToSetup(); } }
+    function returnToSetup() { switchPlatform(state.platform); }
+
+    function showResults() {
+        document.getElementById('section-test').style.display = 'none';
+        document.getElementById('section-result').style.display = 'block';
+        const correct = state.scores.filter(x => x === true).length;
+        const scoreEl = document.getElementById('final-score');
+        scoreEl.innerText = `${correct} / 7`;
+        const win = correct >= 5;
+        scoreEl.style.color = (state.platform === 'word') ? "var(--primary-color)" : "var(--math-color)";
+        document.getElementById('result-title').innerText = win ? "做的太棒了！" : "繼續努力！";
+        document.getElementById('result-text').innerText = win ? `表現優異，獲得一個印仔！` : "再練習一下，你一定可以的！";
+        document.getElementById('win-badge').style.display = win ? 'block' : 'none';
+        if (win) {
+            state.stamps++;
+            localStorage.setItem('hk_stamps_combo_v2', state.stamps);
+            updateStampDisplay();
+        }
+    }
+
+    function updateStampDisplay() {
+        document.getElementById('display-stamps').innerText = `已累積學習成就：${state.stamps} 個印仔 🏆`;
+    }
+
+    // 修正：徹底消除所有數據的邏輯
+    function confirmReset() {
+        if(confirm("確定要消除所有數據嗎？這會讓你的印仔歸零並清除目前題目。")) {
+            // 1. 清除本地存儲
+            localStorage.clear();
+            
+            // 2. 重置內部狀態
+            state.stamps = 0;
+            state.wordQuestions = [];
+            state.mathQuestions = [];
+            state.scores = Array(7).fill(null);
+            
+            // 3. 更新介面顯示
+            updateStampDisplay();
+            renderList('word');
+            renderList('math');
+            
+            // 4. 返回主畫面
+            switchPlatform('word');
+            
+            // 5. 提示用戶
+            console.log("Data reset successfully.");
+        }
+    }
+</script>
+
+</body>
+</html>
